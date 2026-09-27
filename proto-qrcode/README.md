@@ -1,75 +1,43 @@
-# React + TypeScript + Vite
+# Proto QR Code
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+Aplicação web open source (MIT) para gerar QR codes, mais uma solução do [Proto Gestão](https://protogestao.com).
 
-Currently, two official plugins are available:
+## Funcionalidades
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+- Gera QR codes para **Pix**, **Instagram**, **WiFi**, **Facebook** e **texto** (aba padrão).
+- QR code sem fundo (transparente) por padrão, com opção de gerar com fundo.
+- Opção de inserir uma **logomarca** no centro do QR code, renderizada em preto e branco.
+- Download do QR code como imagem PNG (com ou sem fundo).
+- QR codes gerados são **salvos localmente** (localStorage), listados do mais recente para o mais antigo, com **paginação de 50 itens por página** e ações de editar/excluir.
+- Rodapé com aviso de direitos reservados e link para o Proto Gestão.
 
-## React Compiler
+## Tecnologias
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+- [React 19](https://react.dev) + [TypeScript](https://www.typescriptlang.org) + [Vite](https://vite.dev)
+- [qrcode.react](https://github.com/zpao/qrcode.react) para renderização dos QR codes
+- [Vitest](https://vitest.dev) + [React Testing Library](https://testing-library.com/react) para testes unitários e de integração
+- [Playwright](https://playwright.dev) + [jsqr](https://github.com/cozmo/jsQR) para testes de UI/E2E (incluindo a verificação de que o QR code decodifica para o conteúdo configurado)
 
-## Expanding the ESLint configuration
+## Como rodar
 
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
-
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
-
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
-
+```bash
+npm install
+npm run dev       # servidor de desenvolvimento
+npm run build     # build de produção
+npm run preview   # pré-visualiza o build
 ```
 
-You can also install [eslint-plugin-react-x](https://npmx.dev/package/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://npmx.dev/package/eslint-plugin-react-dom) for React-specific lint rules:
+## Testes
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
-
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
-
+```bash
+npm test              # testes unitários e de integração (Vitest)
+npm run test:coverage # testes com relatório de cobertura
+npm run test:e2e      # testes de UI/E2E (Playwright, Chromium)
+npm run test:all      # todas as suítes
 ```
+
+O critério de aceite da aplicação exige cobertura completa dos testes de integração e de UI, garantindo o CRUD local dos QR codes e que o QR code gerado corresponde exatamente ao que foi configurado.
+
+## Licença
+
+[MIT](LICENSE). Copyright (c) 2026 Proto Gestão.

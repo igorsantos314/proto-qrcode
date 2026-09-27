@@ -52,7 +52,14 @@ interface SavedQrCode {
 }
 ```
 
-A `useSavedQrcodes` hook wraps the module with React state, and pagination (50/page) is computed from the sorted list. "Generate while editing" identifies the record by id and updates it instead of inserting a duplicate.
+A `useSavedQrcodes` hook wraps the module with React state, and pagination (50/page) is computed from the sorted list. Persistence is explicit: "Gerar" only renders the QR in memory, while a green "Salvar" button (opposite it in the same row) is the single action that creates or updates a record. "Salvar while editing" identifies the record by id and updates it instead of inserting a duplicate, then shows a confirmation dialog warning that clearing the browser cache loses everything.
+
+### 5. Payload preview and confirmation dialogs
+- On every tab except text, a read-only box below the fields shows the live plain-text payload (`buildPayload` output) so the user validates exactly what the QR will encode before generating/saving.
+- The save action is the only path that writes to storage; generating does not persist.
+- A single reusable `ConfirmDialog` widget backs every confirmation in the app. It is fully configurable: `variant` (`success` green / `danger` red) changes the icon badge and confirm-button color, and `icon`, `title`, `description`, `confirmLabel`, `cancelLabel`, and `showCancel` are props. It is a controlled modal (overlay + `role="dialog"`, Escape/overlay dismiss, optional cancel + confirm buttons), so it is dismissible and testable.
+  - **Save**: success variant, check icon, title "QR code salvo", a single "Entendi" action, message warning that clearing the browser cache loses everything.
+  - **Delete**: danger variant, trash icon, title "Excluir QR code?", cancel + confirm, destructive description. This replaces the previous native `window.confirm`.
 
 ### 5. State management
 No external state library. The app shell holds the active tab/form state; the saved-list state lives in a context (`SavedQrcodesProvider`) so the form, list, edit/delete actions, and pagination stay in sync. Plain CSS in the existing `index.css`/`App.css` — no UI framework, keeping the dependency surface small.

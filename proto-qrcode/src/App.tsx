@@ -1,122 +1,248 @@
 import { useState } from 'react'
-import heroImg from './assets/hero.png'
-import reactLogo from './assets/react.svg'
-import viteLogo from './assets/vite.svg'
+import { AppBar } from './components/AppBar'
+import { ConfirmDialog } from './components/ConfirmDialog'
+import { Footer } from './components/Footer'
+import { PayloadTabs } from './components/PayloadTabs'
+import { QrPreview } from './components/QrPreview'
+import { SavedList } from './components/SavedList'
+import { CheckIcon, SaveIcon, TrashIcon } from './components/icons'
+import {
+  FacebookFields,
+  InstagramFields,
+  PixFields,
+  TextFields,
+  WifiFields,
+} from './components/fields/Fields'
+import { buildPayload } from './lib/payloads'
+import type { PayloadFields, QrPayloadType } from './lib/payloads/types'
+import { validatePayload } from './lib/payloads/validation'
+import type { GeneratedConfig } from './lib/qr/sameConfig'
+import { isStale } from './lib/qr/sameConfig'
+import { convertLogoToBlackAndWhite } from './lib/qr/logoBlackAndWhite'
+import { useSavedQrcodesContext } from './hooks/useSavedQrcodesContext'
+import { SavedQrcodesProvider } from './state/SavedQrcodesProvider'
+import type { QrBackground, SavedQrCode, SavedQrCodeInput } from './types'
 import './App.css'
 
-function App() {
-  const [count, setCount] = useState(0)
+type DialogState =
+  | { kind: 'save' }
+  | { kind: 'delete'; record: SavedQrCode }
+  | null
+
+function Generator() {
+  const saved = useSavedQrcodesContext()
+  const [activeTab, setActiveTab] = useState<QrPayloadType>('text')
+  const [fieldsByType, setFieldsByType] = useState<
+    Record<QrPayloadType, PayloadFields>
+  >({
+    text: {},
+    pix: {},
+    instagram: {},
+    wifi: {},
+    facebook: {},
+  })
+  const [background, setBackground] = useState<QrBackground>('none')
+  const [logoDataUrl, setLogoDataUrl] = useState<string | null>(null)
+  const [generated, setGenerated] = useState<GeneratedConfig | null>(null)
+  const [errors, setErrors] = useState<string[]>([])
+  const [dialog, setDialog] = useState<DialogState>(null)
+
+  const fields = fieldsByType[activeTab]
+  const setFields = (patch: PayloadFields) => {
+    setFieldsByType((prev) => ({
+      ...prev,
+      [activeTab]: { ...prev[activeTab], ...patch },
+    }))
+  }
+
+  const payload = buildPayload(activeTab, fields)
+  const currentConfig: GeneratedConfig = { payload, background, logoDataUrl }
+  const stale = isStale(currentConfig, generated)
+
+  const handleGenerate = () => {
+    const validationErrors = validatePayload(activeTab, fields)
+    if (validationErrors.length > 0) {
+      setErrors(validationErrors)
+      return
+    }
+    setErrors([])
+    setGenerated({ payload, background, logoDataUrl })
+  }
+
+  const handleSave = () => {
+    const validationErrors = validatePayload(activeTab, fields)
+    if (validationErrors.length > 0) {
+      setErrors(validationErrors)
+      return
+    }
+    setErrors([])
+
+    const recordInput: SavedQrCodeInput = {
+      type: activeTab,
+      fields: { ...fields },
+      payload,
+      background,
+      logoDataUrl,
+    }
+    if (saved.editingId) {
+      saved.updateRecord(saved.editingId, recordInput)
+      saved.clearEditing()
+    } else {
+      saved.createRecord(recordInput)
+    }
+    setDialog({ kind: 'save' })
+  }
+
+  const handleEdit = (record: SavedQrCode) => {
+    setActiveTab(record.type)
+    setFieldsByType((prev) => ({
+      ...prev,
+      [record.type]: { ...record.fields },
+    }))
+    setBackground(record.background)
+    setLogoDataUrl(record.logoDataUrl)
+    setGenerated({
+      payload: record.payload,
+      background: record.background,
+      logoDataUrl: record.logoDataUrl,
+    })
+    saved.startEditing(record.id)
+    setErrors([])
+  }
+
+  const handleDelete = (record: SavedQrCode) => {
+    setDialog({ kind: 'delete', record })
+  }
+
+  const handleDialogConfirm = () => {
+    if (dialog?.kind === 'delete') {
+      saved.removeRecord(dialog.record.id)
+      if (saved.editingId === dialog.record.id) {
+        saved.clearEditing()
+      }
+    }
+    setDialog(null)
+  }
+
+  const handleLogoSelect = async (file: File) => {
+    try {
+      const dataUrl = await convertLogoToBlackAndWhite(file)
+      setLogoDataUrl(dataUrl)
+    } catch {
+      setErrors(['Não foi possível processar a logomarca selecionada.'])
+    }
+  }
 
   return (
-    <>
-      <section id="center">
-        <div className="hero">
-          <img src={heroImg} className="base" width="170" height="179" alt="" />
-          <img src={reactLogo} className="framework" alt="React logo" />
-          <img src={viteLogo} className="vite" alt="Vite logo" />
-        </div>
-        <div>
-          <h1>Get started</h1>
-          <p>
-            Edit <code>src/App.tsx</code> and save to test <code>HMR</code>
-          </p>
-        </div>
-        <button
-          type="button"
-          className="counter"
-          onClick={() => setCount((count) => count + 1)}
-        >
-          Count is {count}
-        </button>
-      </section>
+    <main className="main">
+      <div className="generator">
+        <section className="form" aria-label="Gerador de QR code">
+          <h1 className="formTitle">Gerar QR code</h1>
+          <PayloadTabs active={activeTab} onChange={setActiveTab} />
+          {errors.length > 0 && (
+            <ul className="errors">
+              {errors.map((message) => (
+                <li key={message}>{message}</li>
+              ))}
+            </ul>
+          )}
+          {activeTab === 'text' && (
+            <TextFields fields={fields} onChange={setFields} />
+          )}
+          {activeTab === 'pix' && (
+            <PixFields fields={fields} onChange={setFields} />
+          )}
+          {activeTab === 'instagram' && (
+            <InstagramFields fields={fields} onChange={setFields} />
+          )}
+          {activeTab === 'wifi' && (
+            <WifiFields fields={fields} onChange={setFields} />
+          )}
+          {activeTab === 'facebook' && (
+            <FacebookFields fields={fields} onChange={setFields} />
+          )}
+          {activeTab !== 'text' && (
+            <div className="payloadPreview">
+              <span className="payloadPreviewLabel">
+                Conteúdo do QR code (prévia)
+              </span>
+              <code
+                className={
+                  payload
+                    ? 'payloadPreviewText'
+                    : 'payloadPreviewText payloadPreviewEmpty'
+                }
+              >
+                {payload || 'Preencha os campos para visualizar o conteúdo.'}
+              </code>
+            </div>
+          )}
+          <div className="formActions">
+            <button
+              type="button"
+              className="generateButton"
+              onClick={handleGenerate}
+            >
+              Gerar
+            </button>
+            <button type="button" className="saveButton" onClick={handleSave}>
+              <SaveIcon />
+              Salvar
+            </button>
+          </div>
+        </section>
 
-      <div className="ticks"></div>
+        <QrPreview
+          generated={generated}
+          background={background}
+          logoDataUrl={logoDataUrl}
+          stale={stale}
+          onBackgroundChange={setBackground}
+          onLogoSelect={handleLogoSelect}
+          onLogoRemove={() => setLogoDataUrl(null)}
+        />
+      </div>
 
-      <section id="next-steps">
-        <div id="docs">
-          <svg className="icon" role="presentation" aria-hidden="true">
-            <use href="/icons.svg#documentation-icon"></use>
-          </svg>
-          <h2>Documentation</h2>
-          <p>Your questions, answered</p>
-          <ul>
-            <li>
-              <a href="https://vite.dev/" target="_blank">
-                <img className="logo" src={viteLogo} alt="" />
-                Explore Vite
-              </a>
-            </li>
-            <li>
-              <a href="https://react.dev/" target="_blank">
-                <img className="button-icon" src={reactLogo} alt="" />
-                Learn more
-              </a>
-            </li>
-          </ul>
-        </div>
-        <div id="social">
-          <svg className="icon" role="presentation" aria-hidden="true">
-            <use href="/icons.svg#social-icon"></use>
-          </svg>
-          <h2>Connect with us</h2>
-          <p>Join the Vite community</p>
-          <ul>
-            <li>
-              <a href="https://github.com/vitejs/vite" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#github-icon"></use>
-                </svg>
-                GitHub
-              </a>
-            </li>
-            <li>
-              <a href="https://chat.vite.dev/" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#discord-icon"></use>
-                </svg>
-                Discord
-              </a>
-            </li>
-            <li>
-              <a href="https://x.com/vite_js" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#x-icon"></use>
-                </svg>
-                X.com
-              </a>
-            </li>
-            <li>
-              <a href="https://bsky.app/profile/vite.dev" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#bluesky-icon"></use>
-                </svg>
-                Bluesky
-              </a>
-            </li>
-          </ul>
-        </div>
-      </section>
+      <SavedList
+        records={saved.pageRecords}
+        total={saved.records.length}
+        page={saved.page}
+        pageCount={saved.pageCount}
+        editingId={saved.editingId}
+        storageError={saved.storageError}
+        onEdit={handleEdit}
+        onDelete={handleDelete}
+        onPageChange={saved.setPage}
+      />
 
-      <div className="ticks"></div>
-      <section id="spacer"></section>
-    </>
+      <ConfirmDialog
+        open={dialog !== null}
+        variant={dialog?.kind === 'delete' ? 'danger' : 'success'}
+        icon={dialog?.kind === 'delete' ? <TrashIcon size={20} /> : <CheckIcon size={20} />}
+        title={dialog?.kind === 'delete' ? 'Excluir QR code?' : 'QR code salvo'}
+        description={
+          dialog?.kind === 'delete'
+            ? 'Este QR code salvo será removido permanentemente. Essa ação não pode ser desfeita.'
+            : 'O conteúdo foi salvo localmente neste navegador. Ao limpar o cache do navegador, todos os QR codes salvos serão perdidos.'
+        }
+        confirmLabel={dialog?.kind === 'delete' ? 'Excluir' : 'Entendi'}
+        cancelLabel="Cancelar"
+        showCancel={dialog?.kind === 'delete'}
+        onConfirm={handleDialogConfirm}
+        onClose={() => setDialog(null)}
+      />
+    </main>
   )
 }
 
-export default App
+export default function App() {
+  return (
+    <SavedQrcodesProvider>
+      <div className="app">
+        <AppBar />
+        <Generator />
+        <Footer />
+      </div>
+    </SavedQrcodesProvider>
+  )
+}

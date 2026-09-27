@@ -68,3 +68,14 @@ The system SHALL offer a "facebook" tab and SHALL build the payload from the Fac
 #### Scenario: Missing facebook profile
 - **WHEN** the user attempts to generate on the facebook tab without providing a page or profile
 - **THEN** the system SHALL NOT build a payload and SHALL show a validation message
+
+### Requirement: Plain-text payload preview for non-text tabs
+The system SHALL display, below the form fields of every tab except text, the plain-text payload currently being built, so the user can validate the exact content that will be encoded in the QR code.
+
+#### Scenario: Preview reflects the filled fields
+- **WHEN** the user is on a non-text tab and fills in its fields
+- **THEN** the plain-text payload built from those fields is shown below the fields
+
+#### Scenario: No preview on the text tab
+- **WHEN** the user is on the text tab
+- **THEN** no separate payload preview is shown, since the text field itself is the payload

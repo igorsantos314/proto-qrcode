@@ -6,20 +6,35 @@ Persists QR code configurations in local storage so users can reuse, edit, and d
 
 ## ADDED Requirements
 
-### Requirement: Save generated configurations locally
-The system SHALL save the configuration of every generated QR code (payload type, payload fields, background option, logo, and creation timestamp) to the browser's local storage.
+### Requirement: Save current configuration explicitly
+The system SHALL persist the current QR code configuration (payload type, payload fields, background option, logo, and creation timestamp) to the browser's local storage only when the user explicitly saves it. Generating a QR code SHALL NOT persist it.
 
-#### Scenario: Generation saves a record
-- **WHEN** the user generates a QR code
+#### Scenario: Saving persists a record
+- **WHEN** the user clicks Save with a valid configuration
 - **THEN** the configuration is persisted to local storage and appears in the saved list
 
+#### Scenario: Generating does not persist
+- **WHEN** the user generates a QR code without saving it
+- **THEN** nothing is added to the saved list
+
 #### Scenario: Saving an edited record updates it
-- **WHEN** the user edits an existing saved configuration and generates again
+- **WHEN** the user saves while editing an existing saved configuration
 - **THEN** the existing record is updated instead of duplicating the QR configuration
 
 #### Scenario: Data survives reload
 - **WHEN** the user reloads the page after saving records
 - **THEN** the previously saved configurations are still present
+
+### Requirement: Confirmation dialog after saving
+The system SHALL show a dialog when a configuration is saved, informing the user that the content was saved locally and that clearing the browser cache will lose everything.
+
+#### Scenario: Dialog appears after saving
+- **WHEN** the user saves a configuration
+- **THEN** a dialog appears stating that the content was saved locally and that clearing the browser cache will remove all saved QR codes
+
+#### Scenario: Dialog can be dismissed
+- **WHEN** the dialog is shown
+- **THEN** the user can close it and continue using the application
 
 ### Requirement: List saved configurations
 The system SHALL display the saved configurations below the generator form, ordered by date and time from most recent to oldest, with 50 items per page.
