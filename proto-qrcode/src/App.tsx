@@ -43,6 +43,8 @@ function Generator() {
   })
   const [background, setBackground] = useState<QrBackground>('none')
   const [logoDataUrl, setLogoDataUrl] = useState<string | null>(null)
+  const [borderWidth, setBorderWidth] = useState(0)
+  const [borderRadius, setBorderRadius] = useState(0)
   const [generated, setGenerated] = useState<GeneratedConfig | null>(null)
   const [errors, setErrors] = useState<string[]>([])
   const [dialog, setDialog] = useState<DialogState>(null)
@@ -83,6 +85,8 @@ function Generator() {
       payload,
       background,
       logoDataUrl,
+      borderWidth,
+      borderRadius,
     }
     if (saved.editingId) {
       saved.updateRecord(saved.editingId, recordInput)
@@ -101,6 +105,8 @@ function Generator() {
     }))
     setBackground(record.background)
     setLogoDataUrl(record.logoDataUrl)
+    setBorderWidth(record.borderWidth ?? 0)
+    setBorderRadius(record.borderRadius ?? 0)
     setGenerated({
       payload: record.payload,
       background: record.background,
@@ -196,8 +202,12 @@ function Generator() {
           generated={generated}
           background={background}
           logoDataUrl={logoDataUrl}
+          borderWidth={borderWidth}
+          borderRadius={borderRadius}
           stale={stale}
           onBackgroundChange={setBackground}
+          onBorderWidthChange={setBorderWidth}
+          onBorderRadiusChange={setBorderRadius}
           onLogoSelect={handleLogoSelect}
           onLogoRemove={() => setLogoDataUrl(null)}
         />

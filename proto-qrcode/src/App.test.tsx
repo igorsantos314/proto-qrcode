@@ -166,6 +166,29 @@ describe('App integration flows', () => {
     expect(record.logoDataUrl).toBe('data:image/png;base64,LOGO')
   })
 
+  it('saves border width and corner radius with the record (6.4)', async () => {
+    render(<App />)
+    await generateText('com borda')
+
+    fireEvent.change(screen.getByLabelText('Borda (px)'), {
+      target: { value: '6' },
+    })
+    fireEvent.change(screen.getByLabelText('Raio dos cantos (px)'), {
+      target: { value: '10' },
+    })
+
+    const canvas = screen.getByTestId('qr-canvas') as HTMLCanvasElement
+    expect(canvas.style.borderWidth).toBe('6px')
+    expect(canvas.style.borderRadius).toBe('10px')
+    expect(screen.queryByText(/Configuração alterada/)).not.toBeInTheDocument()
+
+    await saveCurrent()
+
+    const record = storedRecords()[0]
+    expect(record.borderWidth).toBe(6)
+    expect(record.borderRadius).toBe(10)
+  })
+
   it('flags the QR as stale on change and clears it on regenerate (4.5)', async () => {
     render(<App />)
     await generateText('v1')
@@ -225,9 +248,11 @@ describe('App integration flows', () => {
       screen.getByText('Conteúdo do QR code (prévia)'),
     ).toBeInTheDocument()
 
+    await userEvent.selectOptions(
+      screen.getByLabelText('Tipo de chave Pix'),
+      'email',
+    )
     await userEvent.type(screen.getByLabelText('Chave Pix'), 'chave@exemplo.com')
-    await userEvent.type(screen.getByLabelText('Nome do recebedor'), 'Fulano')
-    await userEvent.type(screen.getByLabelText('Cidade'), 'Sao Paulo')
 
     const preview = screen.getByText(/000201/).textContent ?? ''
     expect(preview).toContain('br.gov.bcb.pix')

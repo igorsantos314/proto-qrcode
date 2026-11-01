@@ -23,8 +23,12 @@ function setup(overrides: Partial<PreviewProps> = {}) {
     generated,
     background: 'none',
     logoDataUrl: null,
+    borderWidth: 0,
+    borderRadius: 0,
     stale: false,
     onBackgroundChange: vi.fn(),
+    onBorderWidthChange: vi.fn(),
+    onBorderRadiusChange: vi.fn(),
     onLogoSelect: vi.fn(),
     onLogoRemove: vi.fn(),
     ...overrides,
@@ -64,6 +68,36 @@ describe('QrPreview', () => {
     const props = setup()
     await user.click(screen.getByRole('radio', { name: 'Com fundo' }))
     expect(props.onBackgroundChange).toHaveBeenCalledWith('white')
+  })
+
+  it('defaults border and corner radius to zero', () => {
+    setup()
+    expect(screen.getByLabelText('Borda (px)')).toHaveValue(0)
+    expect(screen.getByLabelText('Raio dos cantos (px)')).toHaveValue(0)
+  })
+
+  it('notifies border width changes', () => {
+    const props = setup()
+    fireEvent.change(screen.getByLabelText('Borda (px)'), {
+      target: { value: '8' },
+    })
+    expect(props.onBorderWidthChange).toHaveBeenLastCalledWith(8)
+  })
+
+  it('notifies corner radius changes', () => {
+    const props = setup()
+    fireEvent.change(screen.getByLabelText('Raio dos cantos (px)'), {
+      target: { value: '12' },
+    })
+    expect(props.onBorderRadiusChange).toHaveBeenLastCalledWith(12)
+  })
+
+  it('applies border and corner radius to the rendered canvas', () => {
+    setup({ borderWidth: 6, borderRadius: 10 })
+    const canvas = screen.getByTestId('qr-canvas') as HTMLCanvasElement
+    expect(canvas.style.borderWidth).toBe('6px')
+    expect(canvas.style.borderStyle).toBe('solid')
+    expect(canvas.style.borderRadius).toBe('10px')
   })
 
   it('shows the stale hint when the config changed', () => {

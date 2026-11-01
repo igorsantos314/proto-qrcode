@@ -1,7 +1,13 @@
 import type { PayloadFields } from '../../lib/payloads/types'
 import { FACEBOOK_FIELD } from '../../lib/payloads/facebook'
 import { INSTAGRAM_FIELD } from '../../lib/payloads/instagram'
-import { PIX_FIELDS } from '../../lib/payloads/pix'
+import {
+  formatPixKey,
+  PIX_FIELDS,
+  PIX_KEY_TYPE_LABELS,
+  PIX_KEY_TYPES,
+} from '../../lib/payloads/pix'
+import type { PixKeyType } from '../../lib/payloads/pix'
 import { TEXT_FIELD } from '../../lib/payloads/text'
 import {
   WIFI_ENCRYPTIONS,
@@ -78,27 +84,54 @@ export function TextFields({ fields, onChange }: FieldsProps) {
   )
 }
 
+const PIX_KEY_PLACEHOLDERS: Record<PixKeyType, string> = {
+  cpf: 'Ex.: 123.456.789-09',
+  cnpj: 'Ex.: 12.345.678/0001-95',
+  email: 'Ex.: chave@exemplo.com',
+  phone: 'Ex.: (11) 99999-9999',
+  random: 'Ex.: 123e4567-e89b-12d3-a456-426614174000',
+}
+
 export function PixFields({ fields, onChange }: FieldsProps) {
+  const keyType = asString(fields, PIX_FIELDS.keyType)
+  const keyPlaceholder =
+    PIX_KEY_PLACEHOLDERS[keyType as PixKeyType] ??
+    'Selecione o tipo e informe a chave'
+
   return (
     <div className={styles.fields}>
+      <div className={styles.field}>
+        <label htmlFor="pix-key-type" className={styles.label}>
+          Tipo de chave Pix
+        </label>
+        <select
+          id="pix-key-type"
+          className={styles.input}
+          value={keyType}
+          onChange={(event) => {
+            const nextType = event.target.value
+            onChange({
+              [PIX_FIELDS.keyType]: nextType,
+              [PIX_FIELDS.key]: formatPixKey(nextType, asString(fields, PIX_FIELDS.key)),
+            })
+          }}
+        >
+          <option value="">Selecione o tipo</option>
+          {PIX_KEY_TYPES.map((type) => (
+            <option key={type} value={type}>
+              {PIX_KEY_TYPE_LABELS[type]}
+            </option>
+          ))}
+        </select>
+      </div>
       <TextField
         id="pix-key"
         label="Chave Pix"
-        placeholder="CPF, CNPJ, e-mail, telefone ou chave aleatória"
+        placeholder={keyPlaceholder}
         value={asString(fields, PIX_FIELDS.key)}
-        onValue={(value) => onChange({ [PIX_FIELDS.key]: value })}
-      />
-      <TextField
-        id="pix-name"
-        label="Nome do recebedor"
-        value={asString(fields, PIX_FIELDS.name)}
-        onValue={(value) => onChange({ [PIX_FIELDS.name]: value })}
-      />
-      <TextField
-        id="pix-city"
-        label="Cidade"
-        value={asString(fields, PIX_FIELDS.city)}
-        onValue={(value) => onChange({ [PIX_FIELDS.city]: value })}
+        onValue={(value) =>
+          onChange({ [PIX_FIELDS.key]: formatPixKey(keyType, value) })
+        }
       />
       <TextField
         id="pix-amount"

@@ -1,7 +1,7 @@
 import { useRef } from 'react'
 import type { QrBackground } from '../types'
 import type { GeneratedConfig } from '../lib/qr/sameConfig'
-import { downloadCanvas } from '../lib/qr/downloadPng'
+import { buildQrFilename, downloadCanvas } from '../lib/qr/downloadPng'
 import { QrCanvas } from './QrCanvas'
 import styles from './QrPreview.module.css'
 
@@ -9,11 +9,23 @@ interface QrPreviewProps {
   generated: GeneratedConfig | null
   background: QrBackground
   logoDataUrl: string | null
+  borderWidth: number
+  borderRadius: number
   stale: boolean
   onBackgroundChange: (background: QrBackground) => void
+  onBorderWidthChange: (borderWidth: number) => void
+  onBorderRadiusChange: (borderRadius: number) => void
   onLogoSelect: (file: File) => void
   onLogoRemove: () => void
 }
+
+function parseDimension(value: string): number {
+  const parsed = Number.parseInt(value, 10)
+  return Number.isFinite(parsed) && parsed > 0 ? parsed : 0
+}
+
+const QR_SIZE = 256
+const QR_EXPORT_SIZE = 1000
 
 const BACKGROUND_OPTIONS: Array<{ value: QrBackground; label: string }> = [
   { value: 'none', label: 'Sem fundo' },
@@ -24,8 +36,12 @@ export function QrPreview({
   generated,
   background,
   logoDataUrl,
+  borderWidth,
+  borderRadius,
   stale,
   onBackgroundChange,
+  onBorderWidthChange,
+  onBorderRadiusChange,
   onLogoSelect,
   onLogoRemove,
 }: QrPreviewProps) {
@@ -34,7 +50,12 @@ export function QrPreview({
 
   const handleDownload = () => {
     if (canvasRef.current) {
-      downloadCanvas(canvasRef.current)
+      downloadCanvas(canvasRef.current, buildQrFilename(), {
+        borderWidth,
+        borderRadius,
+        cssSize: QR_SIZE,
+        outputSize: QR_EXPORT_SIZE,
+      })
     }
   }
 
@@ -49,7 +70,10 @@ export function QrPreview({
             value={generated.payload}
             background={generated.background}
             logoDataUrl={generated.logoDataUrl}
-            size={256}
+            borderWidth={borderWidth}
+            borderRadius={borderRadius}
+            size={QR_SIZE}
+            resolution={QR_EXPORT_SIZE}
           />
         ) : (
           <div className={styles.placeholder}>
@@ -83,6 +107,41 @@ export function QrPreview({
             ))}
           </div>
         </fieldset>
+
+        <div className={styles.shapeGroup}>
+          <div className={styles.dimensionField}>
+            <label htmlFor="qr-border" className={styles.groupLabel}>
+              Borda (px)
+            </label>
+            <input
+              id="qr-border"
+              type="number"
+              min={0}
+              step={1}
+              className={styles.numberInput}
+              value={borderWidth}
+              onChange={(event) =>
+                onBorderWidthChange(parseDimension(event.target.value))
+              }
+            />
+          </div>
+          <div className={styles.dimensionField}>
+            <label htmlFor="qr-radius" className={styles.groupLabel}>
+              Raio dos cantos (px)
+            </label>
+            <input
+              id="qr-radius"
+              type="number"
+              min={0}
+              step={1}
+              className={styles.numberInput}
+              value={borderRadius}
+              onChange={(event) =>
+                onBorderRadiusChange(parseDimension(event.target.value))
+              }
+            />
+          </div>
+        </div>
 
         <div className={styles.logoGroup}>
           <span className={styles.groupLabel}>Logomarca (preto e branco)</span>

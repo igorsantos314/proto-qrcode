@@ -101,6 +101,34 @@
   box-shadow: 0 1px 2px rgba(15, 23, 42, 0.1);
 }
 
+.shapeGroup {
+  display: flex;
+  gap: 0.75rem;
+}
+
+.dimensionField {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  flex: 1;
+  align-items: flex-start;
+}
+
+.numberInput {
+  width: 100%;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  padding: 0.5rem 0.6rem;
+  font-size: 0.9rem;
+  color: var(--color-text);
+  background: var(--color-surface);
+}
+
+.numberInput:focus {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 1px;
+}
+
 .logoGroup {
   display: flex;
   flex-direction: column;

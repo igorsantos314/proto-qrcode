@@ -100,9 +100,8 @@ test.describe('7.1 – each tab generates a QR canvas', () => {
 
   test('pix tab', async ({ page }) => {
     await page.getByRole('tab', { name: 'Pix' }).click()
-    await page.getByLabel('Chave Pix').fill('+5511999999999')
-    await page.getByLabel('Nome do recebedor').fill('Fulano de Tal')
-    await page.getByLabel('Cidade').fill('SAO PAULO')
+    await page.getByLabel('Tipo de chave Pix').selectOption('phone')
+    await page.getByLabel('Chave Pix', { exact: true }).fill('+5511999999999')
     await page.getByRole('button', { name: 'Gerar' }).click()
     await expect(page.locator('canvas')).toBeVisible()
   })
@@ -144,9 +143,8 @@ test.describe('7.2 – the decoded QR matches the configured payload', () => {
 
   test('pix', async ({ page }) => {
     await page.getByRole('tab', { name: 'Pix' }).click()
-    await page.getByLabel('Chave Pix').fill('+5511999999999')
-    await page.getByLabel('Nome do recebedor').fill('Fulano de Tal')
-    await page.getByLabel('Cidade').fill('SAO PAULO')
+    await page.getByLabel('Tipo de chave Pix').selectOption('phone')
+    await page.getByLabel('Chave Pix', { exact: true }).fill('+5511999999999')
     await page.getByRole('button', { name: 'Gerar' }).click()
     await expect(page.locator('canvas')).toBeVisible()
 
@@ -155,7 +153,7 @@ test.describe('7.2 – the decoded QR matches the configured payload', () => {
     expect(decoded).toMatch(/^000201/)
     expect(decoded).toContain('br.gov.bcb.pix')
     expect(decoded).toContain('+5511999999999')
-    expect(decoded).toContain('Fulano de Tal')
+    expect(decoded).toContain('RECEBEDOR')
   })
 })
 
@@ -173,6 +171,8 @@ test.describe('7.3 – download with and without background', () => {
     const path = await download.path()
     const bytes = readFileSync(path!)
     expect([...bytes.subarray(0, 8)]).toEqual(PNG_SIGNATURE)
+    expect(bytes.readUInt32BE(16)).toBe(1000)
+    expect(bytes.readUInt32BE(20)).toBe(1000)
   })
 
   test('with background PNG is not transparent', async ({ page }) => {
@@ -188,6 +188,37 @@ test.describe('7.3 – download with and without background', () => {
     const path = await download.path()
     const bytes = readFileSync(path!)
     expect([...bytes.subarray(0, 8)]).toEqual(PNG_SIGNATURE)
+  })
+})
+
+test.describe('7.5 – border and rounded corners', () => {
+  test('applies border and corner radius to the generated QR', async ({ page }) => {
+    await generateText(page, 'Com borda')
+    await page.getByLabel('Borda (px)').fill('8')
+    await page.getByLabel('Raio dos cantos (px)').fill('12')
+
+    const canvas = page.locator('canvas')
+    await expect(canvas).toBeVisible()
+    const styles = await canvas.evaluate((element) => {
+      const computed = getComputedStyle(element)
+      return {
+        borderWidth: computed.borderWidth,
+        borderRadius: computed.borderRadius,
+      }
+    })
+    expect(styles.borderWidth).toBe('8px')
+    expect(styles.borderRadius).toBe('12px')
+  })
+
+  test('zero border removes it', async ({ page }) => {
+    await generateText(page, 'Sem borda')
+    await page.getByLabel('Borda (px)').fill('8')
+    await page.getByRole('button', { name: 'Gerar' }).click()
+    await expect(page.locator('canvas')).toHaveCSS('border-width', '8px')
+
+    await page.getByLabel('Borda (px)').fill('0')
+    await page.getByRole('button', { name: 'Gerar' }).click()
+    await expect(page.locator('canvas')).toHaveCSS('border-width', '0px')
   })
 })
 

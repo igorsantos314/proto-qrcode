@@ -13,10 +13,14 @@ if (!globalThis.crypto?.randomUUID) {
 vi.mock('qrcode.react', () => ({
   QRCodeCanvas: React.forwardRef<
     HTMLCanvasElement,
-    Record<string, unknown> & { imageSettings?: unknown }
+    Record<string, unknown> & {
+      imageSettings?: unknown
+      style?: React.CSSProperties
+    }
   >((props, ref) =>
     React.createElement('canvas', {
       ref,
+      style: props.style,
       'data-testid': 'qr-canvas',
       'data-value': String(props.value ?? ''),
       'data-bgcolor': String(props.bgColor ?? ''),
