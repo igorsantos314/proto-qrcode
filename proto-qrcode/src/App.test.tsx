@@ -44,7 +44,7 @@ describe('App integration flows', () => {
       'aria-selected',
       'false',
     )
-    expect(screen.getByText('Proto QR Code')).toBeInTheDocument()
+    expect(screen.getByText('LaserGest')).toBeInTheDocument()
     expect(screen.getByText(/Nenhum QR code salvo ainda/)).toBeInTheDocument()
   })
 

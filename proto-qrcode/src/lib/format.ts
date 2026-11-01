@@ -29,3 +29,21 @@ export function formatDateTime(iso: string): string {
 export function summarizePayload(payload: string): string {
   return payload.length > 60 ? `${payload.slice(0, 60)}…` : payload
 }
+
+const currencyFormatter = new Intl.NumberFormat('pt-BR', {
+  style: 'currency',
+  currency: 'BRL',
+})
+
+const decimalFormatter = new Intl.NumberFormat('pt-BR', {
+  minimumFractionDigits: 0,
+  maximumFractionDigits: 4,
+})
+
+export function formatCurrency(value: number): string {
+  return currencyFormatter.format(Number.isFinite(value) ? value : 0)
+}
+
+export function formatDecimal(value: number): string {
+  return decimalFormatter.format(Number.isFinite(value) ? value : 0)
+}

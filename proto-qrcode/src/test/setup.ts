@@ -34,4 +34,5 @@ vi.mock('qrcode.react', () => ({
 afterEach(() => {
   cleanup()
   window.localStorage.clear()
+  window.location.hash = ''
 })

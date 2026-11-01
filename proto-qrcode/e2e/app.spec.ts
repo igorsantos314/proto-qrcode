@@ -303,3 +303,103 @@ test.describe('7.4 – saved list lifecycle', () => {
     )
   })
 })
+async function openBudgets(page: Page) {
+  await page.getByRole('link', { name: 'Orçamentos' }).click()
+  await expect(
+    page.getByRole('heading', { name: 'Orçamentos', exact: true }),
+  ).toBeVisible()
+}
+
+async function fillBudget(page: Page) {
+  await page.getByLabel('Tipo de material').fill('MDF')
+  await page.getByLabel('Custo do material (R$/m²)').fill('50')
+  await page.getByLabel('Largura da peça (mm)').fill('100')
+  await page.getByLabel('Altura da peça (mm)').fill('200')
+  await page.getByLabel('Quantidade de peças').fill('10')
+  await page.getByLabel('Tempo de gravação por peça (h)').fill('0.1')
+}
+
+async function saveBudget(page: Page) {
+  await page.getByRole('button', { name: 'Salvar orçamento' }).click()
+  const dialog = page.getByRole('dialog', { name: 'Orçamento salvo' })
+  await expect(dialog).toBeVisible()
+  await dialog.getByRole('button', { name: 'Entendi' }).click()
+}
+
+test.describe('9.1 – section navigation', () => {
+  test('navigates between QR Code and Orçamentos', async ({ page }) => {
+    await expect(
+      page.getByRole('heading', { name: 'Gerar QR code' }),
+    ).toBeVisible()
+
+    await openBudgets(page)
+    await expect(page.getByLabel('Tipo de material')).toBeVisible()
+
+    await page.getByRole('link', { name: 'QR Code' }).click()
+    await expect(
+      page.getByRole('heading', { name: 'Gerar QR code' }),
+    ).toBeVisible()
+  })
+})
+
+test.describe('9.2 – budget cache and export', () => {
+  test('creates, saves and keeps a budget after reload', async ({ page }) => {
+    await openBudgets(page)
+    await fillBudget(page)
+    await saveBudget(page)
+
+    const list = page.getByRole('region', { name: 'Orçamentos salvos' })
+    await expect(list.getByText('1 no total')).toBeVisible()
+    await expect(list.getByText('MDF')).toBeVisible()
+
+    await page.reload()
+    const reloaded = page.getByRole('region', { name: 'Orçamentos salvos' })
+    await expect(reloaded.getByText('1 no total')).toBeVisible()
+    await expect(reloaded.getByText('MDF')).toBeVisible()
+    await expect(reloaded.getByText(/Custo un\./)).toBeVisible()
+    await expect(reloaded.getByText(/Venda un\./)).toBeVisible()
+  })
+
+  test('exports a saved budget as an XLSX file', async ({ page }) => {
+    await openBudgets(page)
+    await fillBudget(page)
+    await saveBudget(page)
+
+    const list = page.getByRole('region', { name: 'Orçamentos salvos' })
+    const [download] = await Promise.all([
+      page.waitForEvent('download'),
+      list.getByRole('button', { name: 'Exportar .xlsx' }).click(),
+    ])
+
+    expect(download.suggestedFilename()).toMatch(
+      /^orcamento-mdf-\d+\.xlsx$/,
+    )
+    const path = await download.path()
+    const bytes = readFileSync(path!)
+    expect([...bytes.subarray(0, 2)]).toEqual([0x50, 0x4b])
+  })
+})
+
+test.describe('9.3 – QR regression after navigation', () => {
+  test('navigates back to QR Code and still generates Pix and PNG', async ({
+    page,
+  }) => {
+    await openBudgets(page)
+    await page.getByRole('link', { name: 'QR Code' }).click()
+
+    await page.getByRole('tab', { name: 'Pix' }).click()
+    await page.getByLabel('Tipo de chave Pix').selectOption('phone')
+    await page.getByLabel('Chave Pix', { exact: true }).fill('11999999999')
+    await page.getByRole('button', { name: 'Gerar' }).click()
+    await expect(page.locator('canvas')).toBeVisible()
+
+    const [download] = await Promise.all([
+      page.waitForEvent('download'),
+      page.getByRole('button', { name: 'Baixar PNG' }).click(),
+    ])
+    expect(download.suggestedFilename()).toMatch(/^qrcode-\d+\.png$/)
+    const path = await download.path()
+    const bytes = readFileSync(path!)
+    expect([...bytes.subarray(0, 8)]).toEqual(PNG_SIGNATURE)
+  })
+})
